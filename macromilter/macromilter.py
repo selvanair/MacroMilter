@@ -302,6 +302,8 @@ class MacroMilter(Milter.Base):
 					attachment_fileobj = StringIO.StringIO(attachment)
 
 					# check if file was already parsed
+					if DUMP_BODY and not newbody:
+						self.writeBodyDump(msg)
 					if self.fileHasAlreadyBeenParsed(attachment):
 						if REJECT_MESSAGE is False:
 							part.set_payload('This attachment has been removed because it contains a suspicious macro.')
@@ -310,8 +312,6 @@ class MacroMilter(Milter.Base):
 							part.replace_header('Content-Transfer-Encoding', '7bit')
 							newbody = True
 						else:
-							if DUMP_BODY:
-								self.writeBodyDump(msg)
 							return Milter.REJECT
 
 					# check if this is a supported file type (if not, just skip it)
@@ -359,12 +359,12 @@ class MacroMilter(Milter.Base):
 							# Add sha256 to the database
 							self.addHashtoDB(attachment)
 							# Replace the attachment or reject it
+							if DUMP_BODY and not newbody:
+								self.writeBodyDump(msg)
 							if REJECT_MESSAGE:
 								log.warning('[%d] The attachment %r contains a suspicious macro: REJECT' % (self.id, filename))
 								self.addheader('X-MacroMilter-Status', 'Suspicious macro')
-								result = Milter.REJECT
-								if DUMP_BODY:
-									self.writeBodyDump(msg)
+								return Milter.REJECT
 							else:
 								log.warning('[%d] The attachment %r contains a suspicious macro: replace it with a text file' % (self.id, filename))
 								self.addheader('X-MacroMilter-Status', 'Suspicious macro')
